@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: resume-analyzer
+    env: python
+    region: oregon
+    buildCommand: "./build.sh"
+    startCommand: "cd ats-checker/core && gunicorn core.wsgi:application"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DATABASE_URL
+        fromDatabase:
+          name: resume-analyzer-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: False
+
+databases:
+  - name: resume-analyzer-db
+    databaseName: resume_analyzer
+    user: resume_analyzer_user
