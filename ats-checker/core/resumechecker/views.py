@@ -24,11 +24,16 @@ class AnalyzeResmeAPI(APIView):
     def post(self, request):
         try:
             data = request.data
-            if not data.get('job_description') or not data.get('resume'):
+            
+            # Check if we have either a job_description ID or custom text
+            job_description_id = data.get('job_description')
+            custom_job_description = data.get('custom_job_description')
+            
+            if (not job_description_id and not custom_job_description) or not data.get('resume'):
                 return Response(
                     {
                         'status': False,
-                        'messages': 'Job description and resume are required',
+                        'messages': 'Job description (or custom) and resume are required',
                         'data': {}
                     }
                 )
@@ -47,21 +52,29 @@ class AnalyzeResmeAPI(APIView):
             _data = serializer.data
             resume_instance = Resume.objects.get(id=_data['id'])
             resume_path = resume_instance.resume.path
-            job_desc = JobDesCription.objects.get(id=data.get('job_description'))
+            
+            # Use custom job description if provided, otherwise get from database
+            if custom_job_description:
+                job_text = custom_job_description
+                job_desc_obj = None
+            else:
+                job_desc_obj = JobDesCription.objects.get(id=job_description_id)
+                job_text = job_desc_obj.job_description
             
             # Analyze resume
-            analysis_data = process_resume(resume_path, job_desc.job_description)
+            analysis_data = process_resume(resume_path, job_text)
             
-            # Save to history
-            AnalysisHistory.objects.create(
-                resume=resume_instance,
-                job_description=job_desc,
-                rank=analysis_data.get('rank', 0),
-                skills=analysis_data.get('skills', []),
-                total_experience=analysis_data.get('total_experience', 0),
-                project_categories=analysis_data.get('project_categories', []),
-                suggestions=analysis_data.get('suggestions', [])
-            )
+            # Save to history (only if using database job description)
+            if job_desc_obj:
+                AnalysisHistory.objects.create(
+                    resume=resume_instance,
+                    job_description=job_desc_obj,
+                    rank=analysis_data.get('rank', 0),
+                    skills=analysis_data.get('skills', []),
+                    total_experience=analysis_data.get('total_experience', 0),
+                    project_categories=analysis_data.get('project_categories', []),
+                    suggestions=analysis_data.get('suggestions', [])
+                )
 
             return Response({
                 'status': True,

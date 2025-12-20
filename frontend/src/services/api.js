@@ -21,10 +21,16 @@ export const apiService = {
   },
 
   // Analyze resume
-  analyzeResume: async (jobDescriptionId, resumeFile) => {
+  analyzeResume: async (jobDescriptionId, resumeFile, customJobDescription = null) => {
     try {
       const formData = new FormData();
-      formData.append('job_description', jobDescriptionId);
+      
+      if (customJobDescription) {
+        formData.append('custom_job_description', customJobDescription);
+      } else {
+        formData.append('job_description', jobDescriptionId);
+      }
+      
       formData.append('resume', resumeFile);
 
       const response = await axios.post(`${API_BASE_URL}/resume/`, formData, {

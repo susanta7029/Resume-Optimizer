@@ -5,6 +5,8 @@ import './App.css';
 function App() {
   const [jobs, setJobs] = useState([]);
   const [selectedJob, setSelectedJob] = useState('');
+  const [customJobDescription, setCustomJobDescription] = useState('');
+  const [useCustomJob, setUseCustomJob] = useState(false);
   const [resumeFile, setResumeFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
@@ -79,9 +81,15 @@ function App() {
       return;
     }
     
-    if (!selectedJob) {
+    if (!useCustomJob && !selectedJob) {
       setError('Please select a job position');
       showToast('Please select a job position', 'warning');
+      return;
+    }
+    
+    if (useCustomJob && !customJobDescription.trim()) {
+      setError('Please enter a custom job description');
+      showToast('Please enter a custom job description', 'warning');
       return;
     }
 
@@ -90,7 +98,11 @@ function App() {
     showToast('Analyzing your resume...', 'info');
 
     try {
-      const data = await apiService.analyzeResume(selectedJob, resumeFile);
+      const data = await apiService.analyzeResume(
+        useCustomJob ? null : selectedJob, 
+        resumeFile,
+        useCustomJob ? customJobDescription : null
+      );
       setResults(data);
       showToast('Resume analyzed successfully!', 'success');
     } catch (err) {
@@ -104,6 +116,8 @@ function App() {
   const handleReset = () => {
     setResumeFile(null);
     setSelectedJob('');
+    setCustomJobDescription('');
+    setUseCustomJob(false);
     setResults(null);
     setError('');
     showToast('Ready for new analysis', 'info');
@@ -190,7 +204,7 @@ Report generated on: ${new Date().toLocaleString()}
                 id="job-select"
                 value={selectedJob}
                 onChange={(e) => setSelectedJob(e.target.value)}
-                disabled={loading}
+                disabled={loading || useCustomJob}
               >
                 <option value="">-- Choose a position --</option>
                 {jobs.map((job) => (
@@ -200,6 +214,40 @@ Report generated on: ${new Date().toLocaleString()}
                 ))}
               </select>
             </div>
+
+            <div className="form-group custom-job-toggle">
+              <label className="toggle-label">
+                <input
+                  type="checkbox"
+                  checked={useCustomJob}
+                  onChange={(e) => {
+                    setUseCustomJob(e.target.checked);
+                    if (e.target.checked) {
+                      setSelectedJob('');
+                    } else {
+                      setCustomJobDescription('');
+                    }
+                  }}
+                  disabled={loading}
+                />
+                <span className="toggle-text">Or use custom job description</span>
+              </label>
+            </div>
+
+            {useCustomJob && (
+              <div className="form-group">
+                <label htmlFor="custom-job"> Paste Job Description</label>
+                <textarea
+                  id="custom-job"
+                  value={customJobDescription}
+                  onChange={(e) => setCustomJobDescription(e.target.value)}
+                  placeholder="Paste the job description here (requirements, responsibilities, qualifications, etc.)"
+                  rows="8"
+                  disabled={loading}
+                  className="custom-job-textarea"
+                />
+              </div>
+            )}
 
             {error && <p className="error-message">{error}</p>}
 
