@@ -3,7 +3,7 @@ services:
     name: resume-analyzer
     env: python
     region: oregon
-    buildCommand: "./build.sh"
+    buildCommand: "bash build.sh"
     startCommand: "cd ats-checker/core && gunicorn core.wsgi:application"
     envVars:
       - key: PYTHON_VERSION
