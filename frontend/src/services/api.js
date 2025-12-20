@@ -1,9 +1,11 @@
 import axios from 'axios';
 
-// Use environment variable for API URL, fallback to localhost for development
+// Use environment variable for API URL, fallback to production or localhost
 const API_BASE_URL = process.env.REACT_APP_API_URL 
   ? `${process.env.REACT_APP_API_URL}/api`
-  : 'http://127.0.0.1:8000/api';
+  : (process.env.NODE_ENV === 'production' 
+      ? 'https://resume-analyzer-2y4v.onrender.com/api'
+      : 'http://127.0.0.1:8000/api');
 
 export const apiService = {
   // Get all job descriptions

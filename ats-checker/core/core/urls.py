@@ -16,8 +16,23 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from django.http import JsonResponse
 from resumechecker.views import JobDescriptionAPI,AnalyzeResmeAPI,AnalysisHistoryAPI
+
+def home(request):
+    return JsonResponse({
+        'message': 'Resume Analyzer API',
+        'status': 'running',
+        'endpoints': {
+            'jobs': '/api/jobs/',
+            'analyze': '/api/resume/',
+            'history': '/api/history/',
+            'admin': '/admin/'
+        }
+    })
+
 urlpatterns = [
+    path('', home, name='home'),
     path('api/jobs/', JobDescriptionAPI.as_view(), name='job-list'),
     path('api/resume/', AnalyzeResmeAPI.as_view(), name='analyze-resume'),
     path('api/history/', AnalysisHistoryAPI.as_view(), name='analysis-history'),

@@ -149,6 +149,12 @@ RENDER_FRONTEND_URL = os.environ.get('RENDER_FRONTEND_URL')
 if RENDER_FRONTEND_URL:
     CORS_ALLOWED_ORIGINS.append(RENDER_FRONTEND_URL)
 
+# Allow all Render subdomains in production
+if not DEBUG:
+    CORS_ALLOWED_ORIGIN_REGEXES = [
+        r"^https://.*\.onrender\.com$",
+    ]
+
 CORS_ALLOW_CREDENTIALS = True
 
 # Default primary key field type
