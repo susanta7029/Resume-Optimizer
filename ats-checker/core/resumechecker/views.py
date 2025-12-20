@@ -5,6 +5,9 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from.serializer import JobDescriptionSerializer,JobDesCription,ResumeSerializer,Resume,AnalysisHistorySerializer,AnalysisHistory
 from.analyzer import process_resume
+import logging
+
+logger = logging.getLogger(__name__)
 
 class JobDescriptionAPI(APIView):
     def get(self,request):
@@ -67,6 +70,7 @@ class AnalyzeResmeAPI(APIView):
             })
 
         except Exception as e:
+            logger.error(f"Error analyzing resume: {str(e)}", exc_info=True)
             return Response({
                 'status': False,
                 'message': f'Error: {str(e)}',

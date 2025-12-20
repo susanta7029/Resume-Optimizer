@@ -31,9 +31,12 @@ export const apiService = {
         },
       });
       // Backend returns {status: true, message: '...', data: {...}}
+      console.log('API Response:', response.data);
+      console.log('Returning data:', response.data.data);
       return response.data.data || response.data;
     } catch (error) {
       console.error('Error analyzing resume:', error);
+      console.error('Error response:', error.response?.data);
       throw error;
     }
   },
