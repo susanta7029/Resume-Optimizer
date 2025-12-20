@@ -142,6 +142,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://resume-analyzer-frontend-ibyj.onrender.com",
 ]
 
 # Add your Render frontend URL when you deploy
@@ -156,6 +157,7 @@ if not DEBUG:
     ]
 
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = False  # Keep this False for security
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
