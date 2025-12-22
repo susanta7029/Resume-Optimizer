@@ -25,14 +25,27 @@ if not API_KEY:
 def analyze_resume_with_llm(resume_text: str, job_description: str) -> dict:
     logging.debug("Starting analysis with LLM")
     prompt = f"""
-    you are an ai assistant that analyzes resumes for a software job application.
-    Given a resume and a job description, extract the following details:
+    You are an expert ATS (Applicant Tracking System) and recruitment specialist. Analyze this resume against the job description with precision.
 
-    1. Identify all skills mentioned in the resume
-    2. Calculate the total years of experience
-    3. Categorize the projects based on the domain (e.g., AI, Web development, Cloud, etc.)
-    4. Rank the resume relevance to the job description on a scale of 0 to 100.
-    5. Provide 3-5 specific, actionable suggestions to improve the resume for this job
+    RANKING CRITERIA (0-100):
+    - 90-100: Exceptional match - most required skills, extensive relevant experience, perfect alignment
+    - 75-89: Strong match - many required skills, good experience, strong alignment  
+    - 60-74: Good match - some required skills, adequate experience, reasonable fit
+    - 40-59: Fair match - few required skills, limited experience, partial fit
+    - 0-39: Poor match - minimal required skills, little relevant experience
+
+    IMPORTANT: Be critical and realistic. Most resumes should score between 40-85. Only truly exceptional matches deserve 90+.
+
+    TASKS:
+    1. Extract ALL technical and soft skills mentioned (be comprehensive)
+    2. Calculate total years of professional experience (sum all work experience)
+    3. Identify project domains/categories (e.g., AI/ML, Web Development, Cloud, Mobile, DevOps, Data Science, etc.)
+    4. Calculate REALISTIC match score based on:
+       - How many required skills from job description are present
+       - Relevance of experience to the role
+       - Project alignment with job requirements
+       - Overall candidate fit
+    5. Provide 3-5 SPECIFIC, actionable suggestions to improve match for THIS job
 
     Resume:
     {resume_text}
@@ -40,11 +53,11 @@ def analyze_resume_with_llm(resume_text: str, job_description: str) -> dict:
     Job Description:
     {job_description}
 
-    Provide the output in a JSON format with the following structure:
+    Return ONLY valid JSON (no markdown, no extra text):
     {{
-        "rank": <percentage>,
+        "rank": <number between 0-100>,
         "skills": ["skill1", "skill2", ...],
-        "total_experience": <years>,
+        "total_experience": <years as integer or float>,
         "project_categories": ["category1", "category2", ...],
         "suggestions": ["suggestion1", "suggestion2", ...]
     }}
@@ -54,8 +67,8 @@ def analyze_resume_with_llm(resume_text: str, job_description: str) -> dict:
         client = Groq(api_key=API_KEY)
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": prompt}],  # Corrected 'message' to 'messages'
-            temperature=0.7,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,  # Lower temperature for more consistent, analytical responses
             response_format={"type": "json_object"}
         )
         result = response.choices[0].message.content
