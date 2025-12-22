@@ -25,41 +25,48 @@ if not API_KEY:
 def analyze_resume_with_llm(resume_text: str, job_description: str) -> dict:
     logging.debug("Starting analysis with LLM")
     prompt = f"""
-    You are an expert ATS (Applicant Tracking System) and recruitment specialist. Analyze this resume against the job description with precision.
+    You are an expert ATS (Applicant Tracking System) evaluator. Your job is to CRITICALLY analyze how well this specific resume matches this specific job description.
 
-    RANKING CRITERIA (0-100):
-    - 90-100: Exceptional match - most required skills, extensive relevant experience, perfect alignment
-    - 75-89: Strong match - many required skills, good experience, strong alignment  
-    - 60-74: Good match - some required skills, adequate experience, reasonable fit
-    - 40-59: Fair match - few required skills, limited experience, partial fit
-    - 0-39: Poor match - minimal required skills, little relevant experience
-
-    IMPORTANT: Be critical and realistic. Most resumes should score between 40-85. Only truly exceptional matches deserve 90+.
-
-    TASKS:
-    1. Extract ALL technical and soft skills mentioned (be comprehensive)
-    2. Calculate total years of professional experience (sum all work experience)
-    3. Identify project domains/categories (e.g., AI/ML, Web Development, Cloud, Mobile, DevOps, Data Science, etc.)
-    4. Calculate REALISTIC match score based on:
-       - How many required skills from job description are present
-       - Relevance of experience to the role
-       - Project alignment with job requirements
-       - Overall candidate fit
-    5. Provide 3-5 SPECIFIC, actionable suggestions to improve match for THIS job
-
-    Resume:
-    {resume_text}
+    STEP 1: Extract key requirements from job description
+    - List all required technical skills
+    - List required years of experience
+    - List required domains/technologies
+    
+    STEP 2: Analyze resume against requirements
+    - Count how many required skills are actually present in resume
+    - Compare experience level to requirements
+    - Check domain/technology alignment
+    
+    STEP 3: Calculate match score (0-100) using this formula:
+    - Start with 0
+    - Add 3 points for EACH required skill found in resume
+    - Add 10 points if experience meets minimum requirements
+    - Add 5 points for each matching domain/technology area
+    - Add 10 points if candidate has relevant certifications or education
+    - Subtract 10 points if missing critical required skills
+    - Subtract 5 points if experience is significantly below requirements
+    
+    IMPORTANT: Each resume will score DIFFERENTLY based on actual content. Do NOT give similar scores to different resumes.
+    
+    Example scoring:
+    - Junior candidate (1-2 years) applying for senior role (5+ years): 30-50 points
+    - Mid-level candidate (3-4 years) with some skills match: 55-70 points  
+    - Strong candidate with most skills and good experience: 75-85 points
+    - Perfect match with all skills and experience: 90-100 points
 
     Job Description:
     {job_description}
 
-    Return ONLY valid JSON (no markdown, no extra text):
+    Resume:
+    {resume_text}
+
+    Now analyze and return ONLY valid JSON:
     {{
-        "rank": <number between 0-100>,
-        "skills": ["skill1", "skill2", ...],
-        "total_experience": <years as integer or float>,
-        "project_categories": ["category1", "category2", ...],
-        "suggestions": ["suggestion1", "suggestion2", ...]
+        "rank": <calculated score 0-100 based on actual match>,
+        "skills": ["list ALL skills from resume"],
+        "total_experience": <total years as number>,
+        "project_categories": ["all project domains/categories"],
+        "suggestions": ["3-5 specific suggestions based on gaps found"]
     }}
     """
 
@@ -68,7 +75,8 @@ def analyze_resume_with_llm(resume_text: str, job_description: str) -> dict:
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,  # Lower temperature for more consistent, analytical responses
+            temperature=0.2,  # Very low for analytical, deterministic responses
+            max_tokens=2000,  # Ensure detailed analysis
             response_format={"type": "json_object"}
         )
         result = response.choices[0].message.content
