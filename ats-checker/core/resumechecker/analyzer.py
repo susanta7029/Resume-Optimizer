@@ -25,34 +25,7 @@ if not API_KEY:
 def analyze_resume_with_llm(resume_text: str, job_description: str) -> dict:
     logging.debug("Starting analysis with LLM")
     prompt = f"""
-    You are an expert ATS (Applicant Tracking System) evaluator. Your job is to CRITICALLY analyze how well this specific resume matches this specific job description.
-
-    STEP 1: Extract key requirements from job description
-    - List all required technical skills
-    - List required years of experience
-    - List required domains/technologies
-    
-    STEP 2: Analyze resume against requirements
-    - Count how many required skills are actually present in resume
-    - Compare experience level to requirements
-    - Check domain/technology alignment
-    
-    STEP 3: Calculate match score (0-100) using this formula:
-    - Start with 0
-    - Add 3 points for EACH required skill found in resume
-    - Add 10 points if experience meets minimum requirements
-    - Add 5 points for each matching domain/technology area
-    - Add 10 points if candidate has relevant certifications or education
-    - Subtract 10 points if missing critical required skills
-    - Subtract 5 points if experience is significantly below requirements
-    
-    IMPORTANT: Each resume will score DIFFERENTLY based on actual content. Do NOT give similar scores to different resumes.
-    
-    Example scoring:
-    - Junior candidate (1-2 years) applying for senior role (5+ years): 30-50 points
-    - Mid-level candidate (3-4 years) with some skills match: 55-70 points  
-    - Strong candidate with most skills and good experience: 75-85 points
-    - Perfect match with all skills and experience: 90-100 points
+    You are an ATS system. Analyze this resume against the job description and extract structured data.
 
     Job Description:
     {job_description}
@@ -60,14 +33,21 @@ def analyze_resume_with_llm(resume_text: str, job_description: str) -> dict:
     Resume:
     {resume_text}
 
-    Now analyze and return ONLY valid JSON:
+    Extract and return ONLY valid JSON with:
     {{
-        "rank": <calculated score 0-100 based on actual match>,
-        "skills": ["list ALL skills from resume"],
-        "total_experience": <total years as number>,
-        "project_categories": ["all project domains/categories"],
-        "suggestions": ["3-5 specific suggestions based on gaps found"]
+        "required_skills_in_job": ["skill1", "skill2", ...],
+        "skills_found_in_resume": ["skill1", "skill2", ...],
+        "matched_skills": ["skills present in both job and resume"],
+        "missing_skills": ["skills in job but not in resume"],
+        "required_experience_years": <number from job description, 0 if not specified>,
+        "candidate_experience_years": <number from resume>,
+        "all_resume_skills": ["all technical and soft skills from resume"],
+        "project_categories": ["domains like AI, Web Dev, Cloud, Mobile, etc."],
+        "has_relevant_education": <true/false>,
+        "suggestions": ["3-5 specific suggestions to improve match"]
     }}
+    
+    Be thorough in skill extraction. Include variations (e.g., "JavaScript" and "JS" are same skill).
     """
 
     try:
@@ -75,13 +55,60 @@ def analyze_resume_with_llm(resume_text: str, job_description: str) -> dict:
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.2,  # Very low for analytical, deterministic responses
-            max_tokens=2000,  # Ensure detailed analysis
+            temperature=0.2,
+            max_tokens=2000,
             response_format={"type": "json_object"}
         )
         result = response.choices[0].message.content
         logging.debug("LLM analysis result: %s", result)
-        return json.loads(result)
+        analysis = json.loads(result)
+        
+        # Calculate score programmatically based on extracted data
+        score = 0
+        
+        # Skill matching (up to 50 points)
+        matched_skills = len(analysis.get('matched_skills', []))
+        required_skills = len(analysis.get('required_skills_in_job', []))
+        if required_skills > 0:
+            skill_percentage = (matched_skills / required_skills) * 100
+            score += min(50, skill_percentage / 2)  # Max 50 points
+        
+        # Experience matching (up to 25 points)
+        required_exp = analysis.get('required_experience_years', 0)
+        candidate_exp = analysis.get('candidate_experience_years', 0)
+        if required_exp > 0:
+            if candidate_exp >= required_exp:
+                score += 25
+            elif candidate_exp >= required_exp * 0.7:
+                score += 20
+            elif candidate_exp >= required_exp * 0.5:
+                score += 15
+            elif candidate_exp >= required_exp * 0.3:
+                score += 10
+            else:
+                score += 5
+        else:
+            score += 15  # Default if no experience requirement
+        
+        # Project categories (up to 15 points)
+        project_cats = len(analysis.get('project_categories', []))
+        score += min(15, project_cats * 3)
+        
+        # Education (up to 10 points)
+        if analysis.get('has_relevant_education', False):
+            score += 10
+        
+        # Round to integer
+        score = int(round(score))
+        
+        # Return formatted response
+        return {
+            "rank": score,
+            "skills": analysis.get('all_resume_skills', []),
+            "total_experience": candidate_exp,
+            "project_categories": analysis.get('project_categories', []),
+            "suggestions": analysis.get('suggestions', [])
+        }
     except Exception as e:
         logging.error("Error during LLM analysis: %s", e)
         return {
