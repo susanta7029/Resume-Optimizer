@@ -169,15 +169,6 @@ def categorize_projects(projects: list) -> list:
                 categories.add(category)
     
     return list(categories) if categories else ['General Software Development']
-    except Exception as e:
-        logging.error("Error during LLM analysis: %s", e)
-        return {
-            "rank": 0,
-            "skills": [],
-            "total_experience": 0,
-            "project_categories": [],
-            "suggestions": ["Unable to generate suggestions due to an error. Please try again."]
-        }  # Return a default structure in case of failure
 
 def process_resume(pdf_path, job_description):
     try:
